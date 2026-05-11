@@ -67,11 +67,11 @@ const loginAdmin = async (req, res) => {
 
     // Set Secure HTTP-Only Cookie
     res.cookie("adminToken", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 12 * 60 * 60 * 1000, // 12 hours
-    });
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 12 * 60 * 60 * 1000,
+});
 
     res.status(200).json({
       message: "Login successful.",
@@ -230,14 +230,12 @@ const getAllProducts = async (req, res) => {
 };
 
 
-// 🚪 3. Admin Logout (Jo tu sidebar se hit karega)
-const logoutAdmin = (req, res) => {
-  res.cookie("adminToken", "", {
-    httpOnly: true,
-    expires: new Date(0), // Cookie delete kar dega
-  });
-  res.status(200).json({ message: "Securely logged out." });
-};
+res.cookie("adminToken", "", {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  expires: new Date(0),
+});
 
 module.exports = {
   registerAdmin,

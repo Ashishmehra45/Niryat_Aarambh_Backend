@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/admin');
-const Seller = require('../models/Seller');
-const Buyer = require('../models/Buyer');
+const Seller = require('../models/seller');
+const Buyer = require('../models/buyer');
 
 // ==========================================
 // 🛡️ 1. ADMIN PROTECTION MIDDLEWARE

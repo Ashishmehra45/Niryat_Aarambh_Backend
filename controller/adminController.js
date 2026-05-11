@@ -230,12 +230,15 @@ const getAllProducts = async (req, res) => {
 };
 
 
-res.cookie("adminToken", "", {
+// 🚪 3. Admin Logout (Jo tu sidebar se hit karega)
+const logoutAdmin = (req, res) => {
+ res.cookie("adminToken", "", {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   expires: new Date(0),
 });
+};
 
 module.exports = {
   registerAdmin,

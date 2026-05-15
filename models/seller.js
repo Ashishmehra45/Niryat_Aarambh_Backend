@@ -1,69 +1,110 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const sellerSchema = new mongoose.Schema({
-  // 📝 Basic Form Details (Step 1 - Registration)
-  companyName: { 
-    type: String, 
-    required: [true, "Company name is required"],
-    trim: true 
-  },
-  fullName: { 
-    type: String, 
-    required: [true, "Contact person name is required"],
-    trim: true 
-  },
-  email: { 
-    type: String, 
-    required: [true, "Email is required"], 
-    unique: true,
-    lowercase: true,
-    trim: true
-  },
-  phone: { 
-    type: String, 
-    required: [true, "Phone number is required"] 
-  },
-  gstNumber: { 
-    type: String, 
-    trim: true,
-    uppercase: true, // GST hamesha uppercase me save hoga
-    default: "" 
-  },
-  password: { 
-    type: String, 
-    required: [true, "Password is required"] 
+
+  // USER CONNECTION
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+    unique: true
   },
 
-  // 🏢 Authorization & Onboarding Logic (Industry Standard)
-  role: { 
-    type: String, 
-    default: "seller" 
-  },
-  status: { 
-    type: String, 
-    enum: ["pending", "approved", "rejected", "suspended"], 
-    default: "pending" // Registration ke baad admin isko approve karega
-  },
-  onboardingCompleted: {
-    type: Boolean,
-    default: false // Jab seller dashboard me aake document verify karayega, tab ye true hoga
-  },
-
-  // 🔥 Real-time Chat (Socket.io)
-  isOnline: { 
-    type: Boolean, 
-    default: false 
-  },
-  lastSeen: { 
-    type: Date, 
-    default: Date.now 
-  },
-  socketId: { 
+  // BUSINESS DETAILS
+  businessName: {
     type: String,
-    default: null
+    required: true
+  },
+
+  ownerName: {
+    type: String
+  },
+
+  businessEmail: {
+    type: String
+  },
+
+  businessPhone: {
+    type: String
+  },
+
+  country: {
+    type: String
+  },
+
+  state: {
+    type: String
+  },
+
+  city: {
+    type: String
+  },
+
+  address: {
+    type: String
+  },
+
+  companyDescription: {
+    type: String
+  },
+
+  gstNumber: {
+    type: String
+  },
+
+  exportLicense: {
+    type: String
+  },
+
+  website: {
+    type: String
+  },
+
+  // IMAGES
+  profileImage: {
+    type: String
+  },
+
+  coverImage: {
+    type: String
+  },
+
+  // PLAN DETAILS
+  currentPlan: {
+    type: String,
+    enum: ["free", "basic", "premium"],
+    default: "free"
+  },
+
+  // VERIFIED BADGE
+  verifiedBadge: {
+    type: Boolean,
+    default: false
+  },
+
+  // SEARCH PRIORITY
+  searchPriority: {
+    type: Number,
+    default: 1
+  },
+
+  // ACCOUNT STATUS
+  isBlocked: {
+    type: Boolean,
+    default: false
+  },
+
+  // SUBSCRIPTION STATUS
+  subscriptionStatus: {
+    type: String,
+    enum: ["active", "expired", "cancelled"],
+    default: "active"
   }
-}, { 
-  timestamps: true 
+
+}, {
+  timestamps: true
 });
 
-module.exports = mongoose.models.Seller || mongoose.model("Seller", sellerSchema);
+const Seller = mongoose.model("Seller", sellerSchema);
+
+export default Seller;

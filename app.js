@@ -20,9 +20,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use("/api/buyers", BuyerRoutes);
-app.use("/api/sellers", SellerRoutes);
-app.use("/api/admin", AdminRoutes);
+
 
 // 🔹 404 handler
 app.use((req, res) => {

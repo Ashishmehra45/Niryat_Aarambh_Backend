@@ -2,6 +2,7 @@ const Seller = require("../../models/Seller");
 const otpGenerator = require("otp-generator");
 const cloudinary = require("../../services/cloudinary");
 const Product = require("../../models/Product");
+
 const fs = require("fs");
 const path = require("path");
 const twilio = require("twilio");

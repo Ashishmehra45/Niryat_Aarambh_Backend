@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
-const BuyerRoutes = require("./routes/buyer/buyer");
-const SellerRoutes = require("./routes/seller/seller.route");
-const AdminRoutes = require("./routes/admin/admin.route");
+
+const sellerRoutes = require("./routes/seller/sellerRoutes");
+// const AdminRoutes = require("./routes/admin/admin.route");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -20,6 +20,7 @@ app.use(cors({
   credentials: true
 }));
 
+app.use("/api/sellers", sellerRoutes);
 
 
 // 🔹 404 handler

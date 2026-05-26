@@ -1,31 +1,50 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const sellerSchema = new mongoose.Schema({
+  // OTP FIELDS (Shuruat mein sirf yehi fill honge)
+  businessPhone: {
+    type: String,
+    required: [true, "Business phone number is required"],
+    unique: true,
+    trim: true
+  },
+  otp: {
+    type: String,
+    default: null
+  },
+  otpExpiry: {
+    type: Date,
+    default: null
+  },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false
+  },
 
-  // USER CONNECTION
+  // USER CONNECTION 
+  // (Isse required: true se hata diya hai taaki OTP save ho sake. Step 2/3 mein update kar lena)
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
-    unique: true
+    unique: true,
+    sparse: true // Yeh zaroori hai! Taki jab tak userId na ho, tab tak null values duplicate error na dein
   },
 
   // BUSINESS DETAILS
   businessName: {
     type: String,
-    required: true
+    trim: true
   },
 
   ownerName: {
-    type: String
+    type: String,
+    trim: true
   },
 
   businessEmail: {
-    type: String
-  },
-
-  businessPhone: {
-    type: String
+    type: String,
+    trim: true,
+    lowercase: true
   },
 
   country: {
@@ -49,15 +68,18 @@ const sellerSchema = new mongoose.Schema({
   },
 
   gstNumber: {
-    type: String
+    type: String,
+    trim: true
   },
 
   exportLicense: {
-    type: String
+    type: String,
+    trim: true
   },
 
   website: {
-    type: String
+    type: String,
+    trim: true
   },
 
   // IMAGES
@@ -70,10 +92,11 @@ const sellerSchema = new mongoose.Schema({
   },
 
   // PLAN DETAILS
+ // PLAN DETAILS
   currentPlan: {
     type: String,
-    enum: ["free", "basic", "premium"],
-    default: "free"
+    enum: ["Free", "Basic", "Premium"], // Ab Frontend se match karega!
+    default: "Free"
   },
 
   // VERIFIED BADGE
@@ -102,9 +125,9 @@ const sellerSchema = new mongoose.Schema({
   }
 
 }, {
-  timestamps: true
+  timestamps: true // Isse createdAt aur updatedAt apne aap manage ho jayenge
 });
 
 const Seller = mongoose.model("Seller", sellerSchema);
 
-export default Seller;
+module.exports = Seller;

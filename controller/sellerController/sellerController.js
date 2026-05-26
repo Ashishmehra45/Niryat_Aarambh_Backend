@@ -302,13 +302,7 @@ exports.loginWithOTP = async (req, res) => {
       expiresIn: "7d",
     });
 
-    // Token generate karne ke baad, cookie set karte waqt ye parameters do:
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true, 
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 din tak login rahega, baar-baar nahi maangega
-    });
+    
     res.status(200).json({ message: "Login successful!", seller });
   } catch (error) {
     console.error("Login Verify Error:", error);

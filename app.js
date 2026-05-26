@@ -11,17 +11,20 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://niryat-aarambh.vercel.app'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // Tera local Vite/React server
+      "https://niryat-aarambh.vercel.app", // Tera Vercel production URL
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // OPTIONS add kiya hai
+    credentials: true, // 🔥 Ye bilkul sahi hai cookies ke liye
+  }),
+);
 
 app.use("/api/sellers", sellerRoutes);
-
 
 // 🔹 404 handler
 app.use((req, res) => {

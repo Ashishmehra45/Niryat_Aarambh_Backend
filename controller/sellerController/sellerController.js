@@ -161,11 +161,9 @@ exports.completeRegistration = async (req, res) => {
       });
 
       if (emailExists) {
-        return res
-          .status(400)
-          .json({
-            error: "This Email is already registered with another account.",
-          });
+        return res.status(400).json({
+          error: "This Email is already registered with another account.",
+        });
       }
     }
 
@@ -304,11 +302,10 @@ exports.loginWithOTP = async (req, res) => {
       expiresIn: "7d",
     });
 
-    // 4. SET SECURE COOKIE
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: true, // Production me hamesha TRUE hona chahiye (HTTPS ke liye)
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 🔥 YE LINE SABSE IMPORTANT HAI
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -403,13 +400,15 @@ exports.addProduct = async (req, res) => {
 exports.getMyProducts = async (req, res) => {
   try {
     // 🔥 Middleware se aayi hui ID use karo (Security Proof)
-    const sellerId = req.user.id; 
+    const sellerId = req.user.id;
 
-    const products = await Product.find({ sellerId: sellerId }).sort({ createdAt: -1 });
+    const products = await Product.find({ sellerId: sellerId }).sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({
       success: true,
-      products: products
+      products: products,
     });
   } catch (error) {
     res.status(500).json({ error: "Server error." });

@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 
 const sellerRoutes = require("./routes/seller/sellerRoutes");
+const buyerRoutes = require("./routes/buyer/buyerRoutes");
 // const AdminRoutes = require("./routes/admin/admin.route");
 const cookieParser = require("cookie-parser");
 
@@ -25,6 +26,7 @@ app.use(
 );
 
 app.use("/api/sellers", sellerRoutes);
+app.use("/api/buyers", buyerRoutes);
 
 // 🔹 404 handler
 app.use((req, res) => {

@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const Seller = require("../models/Seller"); // Apne model ka path check kar lena
+const Seller = require("../models/sellerModel.js"); // Apne model ka path check kar lena
 
 const verifySellerToken = async (req, res, next) => {
   try {

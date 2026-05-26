@@ -1,4 +1,4 @@
-const Seller = require("../../models/Seller");
+const Seller = require("../../models/sellerModel.js");
 const otpGenerator = require("otp-generator");
 const cloudinary = require("../../services/cloudinary");
 const Product = require("../../models/Product");

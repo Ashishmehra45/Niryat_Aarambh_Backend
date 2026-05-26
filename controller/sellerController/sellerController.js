@@ -266,9 +266,7 @@ exports.loginWithOTP = async (req, res) => {
     let { businessPhone, otp } = req.body;
 
     if (!businessPhone || !otp) {
-      return res
-        .status(400)
-        .json({ error: "Phone number and OTP are required" });
+      return res.status(400).json({ error: "Phone number and OTP are required" });
     }
 
     businessPhone = String(businessPhone).trim();
@@ -276,34 +274,33 @@ exports.loginWithOTP = async (req, res) => {
       businessPhone = `+91${businessPhone}`;
     }
 
-    // 1. FIND SELLER
     const seller = await Seller.findOne({ businessPhone });
     if (!seller) {
       return res.status(404).json({ error: "Seller not found." });
     }
 
-    // 2. VERIFY OTP
     if (seller.otp !== otp) {
       return res.status(400).json({ error: "Invalid OTP." });
     }
     if (seller.otpExpiry < new Date()) {
-      return res
-        .status(400)
-        .json({ error: "OTP has expired. Request a new one." });
+      return res.status(400).json({ error: "OTP has expired. Request a new one." });
     }
 
-    // CLEAR OTP AFTER SUCCESS
     seller.otp = null;
     seller.otpExpiry = null;
     await seller.save();
 
-    // 3. GENERATE TOKEN
     const token = jwt.sign({ id: seller._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
+    // 🔥 SABSE BADI GALTI YAHAN THI: Token bhej nahi rahe the
+    res.status(200).json({ 
+      message: "Login successful!", 
+      seller: seller, 
+      token: token // <-- Ise zaroor add karna hai!
+    });
     
-    res.status(200).json({ message: "Login successful!", seller });
   } catch (error) {
     console.error("Login Verify Error:", error);
     res.status(500).json({ error: "Server error during login verification." });

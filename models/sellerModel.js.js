@@ -42,11 +42,12 @@ const sellerSchema = new mongoose.Schema({
   },
 
   businessEmail: {
-    type: String,
-    trim: true,
-    lowercase: true
-  },
-
+   type: String,
+   trim: true,
+   lowercase: true,
+   unique: true,
+   sparse: true
+},
   country: {
     type: String
   },

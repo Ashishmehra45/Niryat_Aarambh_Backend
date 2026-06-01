@@ -2,11 +2,13 @@ const Seller = require("../../models/sellerModel.js");
 const otpGenerator = require("otp-generator");
 const cloudinary = require("../../services/cloudinary");
 const Product = require("../../models/Product");
+const bcrypt = require("bcryptjs"); // 🔥 Password secure karne ke liye
+const jwt = require("jsonwebtoken");
 
 const fs = require("fs");
 const path = require("path");
 const twilio = require("twilio");
-const jwt = require("jsonwebtoken");
+// const jwt = require("jsonwebtoken");
 
 // SAFE INITIALIZATION
 if (!process.env.TWILIO_ACCOUNT_SID) {
@@ -132,34 +134,37 @@ const uploadToCloudinary = async (file) => {
   }
 };
 
-// 3. Complete Registration
 exports.completeRegistration = async (req, res) => {
   try {
     console.log("Body:", req.body);
     console.log("Files:", req.files);
 
-    // 🔥 THE FIX: 'const' ki jagah 'let' lagaya hai taaki variable update ho sake
-    let { businessPhone, businessEmail, ...otherData } = req.body;
+    let { businessPhone, businessEmail, password, ...otherData } = req.body;
 
+    // 1. Basic Validations
     if (!businessPhone) {
-      return res
-        .status(400)
-        .json({ error: "Business Phone is missing in request!" });
+      return res.status(400).json({ error: "Business Phone is missing in request!" });
+    }
+    if (!password) {
+      return res.status(400).json({ error: "Password is required for registration!" });
     }
 
-    // Ab ye aaram se update ho jayega bina kisi error ke
     businessPhone = String(businessPhone).trim();
     if (!businessPhone.startsWith("+")) {
       businessPhone = `+91${businessPhone}`;
     }
 
-    // Optional: Check if Email is already used by ANOTHER user
-    if (businessEmail) {
-      const emailExists = await Seller.findOne({
-        businessEmail: businessEmail,
-        businessPhone: { $ne: businessPhone },
+    // 2. Check if Seller already exists with this Phone
+    const phoneExists = await Seller.findOne({ businessPhone });
+    if (phoneExists) {
+      return res.status(400).json({ 
+        error: "This phone number is already registered. Please login instead." 
       });
+    }
 
+    // 3. Check if Email is already used by ANOTHER user
+    if (businessEmail) {
+      const emailExists = await Seller.findOne({ businessEmail });
       if (emailExists) {
         return res.status(400).json({
           error: "This Email is already registered with another account.",
@@ -167,6 +172,11 @@ exports.completeRegistration = async (req, res) => {
       }
     }
 
+    // 🔥 4. Hash the Password (Security First!)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 5. Handle Image Uploads
     let profileImageUrl = null;
     let coverImageUrl = null;
 
@@ -177,133 +187,96 @@ exports.completeRegistration = async (req, res) => {
       coverImageUrl = await uploadToCloudinary(req.files.coverImage[0]);
     }
 
-    const updatedSeller = await Seller.findOneAndUpdate(
-      { businessPhone: businessPhone },
-      {
-        businessEmail: businessEmail,
-        ...otherData,
-        profileImage: profileImageUrl,
-        coverImage: coverImageUrl,
-      },
-      { returnDocument: "after" },
-    );
-
-    if (!updatedSeller) {
-      return res
-        .status(404)
-        .json({ error: "Seller not found. Please verify phone number first." });
-    }
-
-    res.status(200).json({
-      message: "Registration successful with Cloudinary!",
-      seller: updatedSeller,
+    // 6. Create NEW Seller in Database
+    const newSeller = new Seller({
+      businessPhone: businessPhone,
+      businessEmail: businessEmail,
+      password: hashedPassword, // Save hashed password
+      profileImage: profileImageUrl,
+      coverImage: coverImageUrl,
+      ...otherData,
     });
+
+    await newSeller.save();
+
+    // 7. Generate JWT Token so user auto-logs in after registration
+    const token = jwt.sign({ id: newSeller._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    // Security: Response mein password mat bhejo
+    newSeller.password = undefined;
+
+    res.status(201).json({
+      message: "Registration successful!",
+      seller: newSeller,
+      token: token // 🔥 Frontend ko direct token de diya
+    });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    console.error("Registration Error:", error);
+    res.status(500).json({ error: error.message || "Internal server error" });
   }
 };
 
-// 1. STEP 1: Send OTP for Login
-exports.loginSendOTP = async (req, res) => {
+exports.login = async (req, res) => {
   try {
-    let { businessPhone } = req.body;
+    // Frontend se email (ya phone) aur password aayega
+    let { email, password } = req.body;
 
-    if (!businessPhone) {
-      return res.status(400).json({ error: "Phone number is required" });
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email/Phone and password are required." });
     }
 
-    businessPhone = String(businessPhone).trim();
-    if (!businessPhone.startsWith("+")) {
-      businessPhone = `+91${businessPhone}`;
+    email = String(email).trim().toLowerCase();
+
+    // 1. FIND SELLER (Email ya BusinessPhone dono se login allow karne ke liye)
+    // Agar user ne phone number daala hai (with or without +91)
+    let phoneQuery = email;
+    if (!phoneQuery.startsWith("+") && !isNaN(phoneQuery)) {
+      phoneQuery = `+91${phoneQuery}`;
     }
 
-    // CHECK IF SELLER EXISTS (Login me naya user nahi banega)
-    let seller = await Seller.findOne({ businessPhone });
-    if (!seller) {
-      return res
-        .status(404)
-        .json({ error: "Seller not found. Please register first." });
-    }
-
-    // GENERATE OTP
-    const generatedOtp = otpGenerator.generate(4, {
-      digits: true,
-      upperCaseAlphabets: false,
-      specialChars: false,
-      lowerCaseAlphabets: false,
-    });
-    const expiryTime = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
-
-    // SAVE OTP IN DB
-    seller.otp = generatedOtp;
-    seller.otpExpiry = expiryTime;
-    await seller.save();
-
-    // SEND TWILIO MESSAGE
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN,
-    );
-    await client.messages.create({
-      body: `Niryat Aarambh Login: Your verification code is ${generatedOtp}. Do not share this.`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: businessPhone,
+    // Database mein check karo ki kya Email ya Phone match karta hai
+    const seller = await Seller.findOne({
+      $or: [{ businessEmail: email }, { businessPhone: phoneQuery }]
     });
 
-    res
-      .status(200)
-      .json({ message: "OTP sent successfully to your registered number." });
-  } catch (error) {
-    console.error("Twilio Login Error:", error);
-    res.status(500).json({ error: "Failed to send OTP for login." });
-  }
-};
-
-// 2. STEP 2: Verify OTP & Generate Token
-exports.loginWithOTP = async (req, res) => {
-  try {
-    let { businessPhone, otp } = req.body;
-
-    if (!businessPhone || !otp) {
-      return res.status(400).json({ error: "Phone number and OTP are required" });
-    }
-
-    businessPhone = String(businessPhone).trim();
-    if (!businessPhone.startsWith("+")) {
-      businessPhone = `+91${businessPhone}`;
-    }
-
-    const seller = await Seller.findOne({ businessPhone });
     if (!seller) {
-      return res.status(404).json({ error: "Seller not found." });
+      return res.status(404).json({ error: "Account not found. Please register first." });
     }
 
-    if (seller.otp !== otp) {
-      return res.status(400).json({ error: "Invalid OTP." });
-    }
-    if (seller.otpExpiry < new Date()) {
-      return res.status(400).json({ error: "OTP has expired. Request a new one." });
+    // 2. VERIFY PASSWORD
+    // Database mein save hashed password ko user ke daale hue password se compare karo
+    const isMatch = await bcrypt.compare(password, seller.password);
+    
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid email or password." });
     }
 
-    seller.otp = null;
-    seller.otpExpiry = null;
-    await seller.save();
+    // Account block toh nahi hai, ye bhi check kar lo (Optional but good practice)
+    if (seller.isBlocked) {
+      return res.status(403).json({ error: "Your account has been blocked by Admin." });
+    }
 
+    // 3. GENERATE TOKEN
     const token = jwt.sign({ id: seller._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    // 🔥 SABSE BADI GALTI YAHAN THI: Token bhej nahi rahe the
+    // Security: Response mein password mat bhejo
+    seller.password = undefined;
+
+    // 4. SEND RESPONSE
     res.status(200).json({ 
       message: "Login successful!", 
       seller: seller, 
-      token: token // <-- Ise zaroor add karna hai!
+      token: token 
     });
     
   } catch (error) {
-    console.error("Login Verify Error:", error);
-    res.status(500).json({ error: "Server error during login verification." });
+    console.error("Login Error:", error);
+    res.status(500).json({ error: "Server error during login." });
   }
 };
 

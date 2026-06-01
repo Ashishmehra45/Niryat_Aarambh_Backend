@@ -1,28 +1,20 @@
 const mongoose = require("mongoose");
 
 const sellerSchema = new mongoose.Schema({
-  // OTP FIELDS (Shuruat mein sirf yehi fill honge)
+  // LOGIN CREDENTIALS
   businessPhone: {
     type: String,
     required: [true, "Business phone number is required"],
     unique: true,
     trim: true
   },
-  otp: {
+  password: {
     type: String,
-    default: null
-  },
-  otpExpiry: {
-    type: Date,
-    default: null
-  },
-  isPhoneVerified: {
-    type: Boolean,
-    default: false
+    required: [true, "Password is required"],
+    minlength: [6, "Password must be at least 6 characters long"]
   },
 
   // USER CONNECTION 
-  // (Isse required: true se hata diya hai taaki OTP save ho sake. Step 2/3 mein update kar lena)
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -47,7 +39,8 @@ const sellerSchema = new mongoose.Schema({
    lowercase: true,
    unique: true,
    sparse: true
-},
+  },
+
   country: {
     type: String
   },
@@ -93,10 +86,9 @@ const sellerSchema = new mongoose.Schema({
   },
 
   // PLAN DETAILS
- // PLAN DETAILS
   currentPlan: {
     type: String,
-    enum: ["Free", "Basic", "Premium"], // Ab Frontend se match karega!
+    enum: ["Free", "Basic", "Premium"], 
     default: "Free"
   },
 

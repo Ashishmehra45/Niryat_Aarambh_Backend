@@ -18,8 +18,8 @@ router.post(
   ]),
   sellerController.completeRegistration
 );
-router.post("/login-send-otp", sellerController.loginSendOTP);
-router.post("/login", sellerController.loginWithOTP);
+// router.post("/login-send-otp", sellerController.loginSendOTP);
+router.post("/login", sellerController.login);
 router.post("/logout", sellerController.logout);
 
 // Subscription Route

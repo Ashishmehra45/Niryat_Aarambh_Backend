@@ -24,7 +24,7 @@ router.post("/logout", sellerController.logout);
 
 // Subscription Route
 router.put("/update-plan", sellerController.updatePlan);
-router.post("/add-product",  upload.single('productImage'), sellerController.addProduct);
+router.post("/add-product",  upload.any(), sellerController.addProduct);
 router.get("/my-products", verifySellerToken, sellerController.getMyProducts);
 
 module.exports = router;

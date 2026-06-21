@@ -143,10 +143,14 @@ exports.completeRegistration = async (req, res) => {
 
     // 1. Basic Validations
     if (!businessPhone) {
-      return res.status(400).json({ error: "Business Phone is missing in request!" });
+      return res
+        .status(400)
+        .json({ error: "Business Phone is missing in request!" });
     }
     if (!password) {
-      return res.status(400).json({ error: "Password is required for registration!" });
+      return res
+        .status(400)
+        .json({ error: "Password is required for registration!" });
     }
 
     businessPhone = String(businessPhone).trim();
@@ -157,8 +161,8 @@ exports.completeRegistration = async (req, res) => {
     // 2. Check if Seller already exists with this Phone
     const phoneExists = await Seller.findOne({ businessPhone });
     if (phoneExists) {
-      return res.status(400).json({ 
-        error: "This phone number is already registered. Please login instead." 
+      return res.status(400).json({
+        error: "This phone number is already registered. Please login instead.",
       });
     }
 
@@ -210,9 +214,8 @@ exports.completeRegistration = async (req, res) => {
     res.status(201).json({
       message: "Registration successful!",
       seller: newSeller,
-      token: token // 🔥 Frontend ko direct token de diya
+      token: token, // 🔥 Frontend ko direct token de diya
     });
-
   } catch (error) {
     console.error("Registration Error:", error);
     res.status(500).json({ error: error.message || "Internal server error" });
@@ -225,7 +228,9 @@ exports.login = async (req, res) => {
     let { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email/Phone and password are required." });
+      return res
+        .status(400)
+        .json({ error: "Email/Phone and password are required." });
     }
 
     email = String(email).trim().toLowerCase();
@@ -239,24 +244,28 @@ exports.login = async (req, res) => {
 
     // Database mein check karo ki kya Email ya Phone match karta hai
     const seller = await Seller.findOne({
-      $or: [{ businessEmail: email }, { businessPhone: phoneQuery }]
+      $or: [{ businessEmail: email }, { businessPhone: phoneQuery }],
     });
 
     if (!seller) {
-      return res.status(404).json({ error: "Account not found. Please register first." });
+      return res
+        .status(404)
+        .json({ error: "Account not found. Please register first." });
     }
 
     // 2. VERIFY PASSWORD
     // Database mein save hashed password ko user ke daale hue password se compare karo
     const isMatch = await bcrypt.compare(password, seller.password);
-    
+
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid email or password." });
     }
 
     // Account block toh nahi hai, ye bhi check kar lo (Optional but good practice)
     if (seller.isBlocked) {
-      return res.status(403).json({ error: "Your account has been blocked by Admin." });
+      return res
+        .status(403)
+        .json({ error: "Your account has been blocked by Admin." });
     }
 
     // 3. GENERATE TOKEN
@@ -268,12 +277,11 @@ exports.login = async (req, res) => {
     seller.password = undefined;
 
     // 4. SEND RESPONSE
-    res.status(200).json({ 
-      message: "Login successful!", 
-      seller: seller, 
-      token: token 
+    res.status(200).json({
+      message: "Login successful!",
+      seller: seller,
+      token: token,
     });
-    
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ error: "Server error during login." });
@@ -297,11 +305,10 @@ exports.updatePlan = async (req, res) => {
   }
 };
 
-// Main Function: Add New Product
 exports.addProduct = async (req, res) => {
   try {
     console.log("Product Body:", req.body);
-    console.log("Product File:", req.file);
+    console.log("Product Files:", req.files);
 
     const {
       sellerId,
@@ -312,29 +319,72 @@ exports.addProduct = async (req, res) => {
       moq,
       moqUnit,
       description,
+      timelineData, // Frontend se aayi hui JSON string
     } = req.body;
 
     // 1. Basic Validation
     if (!sellerId) {
       return res.status(400).json({ error: "Seller ID is required." });
     }
-    if (!req.file) {
-      return res.status(400).json({ error: "Product image is required." });
-    }
 
-    // 2. Fetch Seller Details (Company name nikalne ke liye)
     const seller = await Seller.findById(sellerId);
     if (!seller) {
       return res.status(404).json({ error: "Seller not found in database." });
     }
 
-    // 3. Upload Image to Cloudinary
-    const productImageUrl = await uploadToCloudinary(req.file);
+    // 2. Timeline Data Parse & Filter Karo 🔥
+    let parsedTimeline = [];
+    if (timelineData) {
+      try {
+        const rawTimeline = JSON.parse(timelineData);
+
+        // NAYA LOGIC: Sirf wahi steps aage jayenge jisme user ne kuch type kiya hai
+        parsedTimeline = rawTimeline.filter(
+          (step) =>
+            step.title?.trim() !== "" ||
+            step.date?.trim() !== "" ||
+            step.description?.trim() !== "",
+        );
+      } catch (err) {
+        console.error("Error parsing timeline data:", err);
+        return res.status(400).json({ error: "Invalid timeline data format." });
+      }
+    }
+
+    // 3. Handle Multiple Image Uploads
+    let mainImageUrl = null;
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        // Main product image
+        if (file.fieldname === "productImage") {
+          mainImageUrl = await uploadToCloudinary(file);
+        }
+
+        // Timeline images
+        else if (file.fieldname.startsWith("timelineImage_")) {
+          const index = parseInt(file.fieldname.split("_")[1]);
+          const timelinePicUrl = await uploadToCloudinary(file);
+
+          // Image ka URL array me tabhi set karo agar wo valid step ho
+          if (parsedTimeline[index]) {
+            parsedTimeline[index].timelineImage = timelinePicUrl;
+          }
+        }
+      }
+    }
+
+    if (!mainImageUrl) {
+      return res.status(400).json({ error: "Product main image is required." });
+    }
+
+    // Console me check kar ki final timeline kya bani
+    console.log("🔥 Final Timeline to Save:", parsedTimeline);
 
     // 4. Save to Database
     const newProduct = new Product({
       sellerId: sellerId,
-      companyName: seller.businessName, // Seller se uthaya hua data
+      companyName: seller.businessName,
       productName,
       category,
       price,
@@ -342,16 +392,16 @@ exports.addProduct = async (req, res) => {
       moq,
       moqUnit,
       description,
-      productImage: productImageUrl,
+      productImage: mainImageUrl,
+      productTimeline: parsedTimeline, // Valid timeline yahan attach hogi
       verifiedExporter: "Verified",
       gstVerified: "Verified",
-      // Note: verifiedExporter aur gstVerified automatically "Pending" ho jayenge schema ke hisaab se
     });
 
     await newProduct.save();
 
     res.status(201).json({
-      message: "Product added successfully! Waiting for admin approval.",
+      message: "Product added successfully!",
       product: newProduct,
     });
   } catch (error) {

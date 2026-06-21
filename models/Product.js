@@ -52,6 +52,15 @@ const productSchema = new mongoose.Schema(
       enum: ["Pending", "Verified", "Rejected"],
       default: "Pending", // Admin isko dashboard se 'Verified' karega
     },
+    // Product Schema ke andar add karna hai
+    productTimeline: [
+      {
+        date: { type: String, required: true },
+        title: { type: String, required: true },
+        description: { type: String, required: true },
+        timelineImage: { type: String }, // Cloudinary URL
+      },
+    ],
   },
   { timestamps: true },
 );

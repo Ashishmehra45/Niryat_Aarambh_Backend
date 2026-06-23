@@ -26,5 +26,10 @@ router.post("/logout", sellerController.logout);
 router.put("/update-plan", sellerController.updatePlan);
 router.post("/add-product",  upload.any(), sellerController.addProduct);
 router.get("/my-products", verifySellerToken, sellerController.getMyProducts);
+router.put("/update-product/:id", upload.any(), sellerController.updateProduct);
+router.get("/my-inquiries", verifySellerToken, sellerController.getSellerInquiries);
+router.put("/update-status/:id", verifySellerToken, sellerController.updateInquiryStatus);
+
+
 
 module.exports = router;

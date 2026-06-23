@@ -4,6 +4,7 @@ const cloudinary = require("../../services/cloudinary");
 const Product = require("../../models/Product");
 const bcrypt = require("bcryptjs"); // 🔥 Password secure karne ke liye
 const jwt = require("jsonwebtoken");
+const Inquiry = require("../../models/Inquiry");
 
 const fs = require("fs");
 const path = require("path");
@@ -436,4 +437,107 @@ exports.logout = (req, res) => {
     sameSite: "strict",
   });
   res.status(200).json({ message: "Logged out successfully!" });
+};
+
+exports.getSellerInquiries = async (req, res) => {
+  try {
+    // authMiddleware se seller ki ID aayegi
+    const sellerId = req.user.id; 
+
+    // Inquiries fetch karo aur sath me product ka naam aur image bhi le aao
+    const inquiries = await Inquiry.find({ sellerId })
+      .populate("productId", "productName productImage") // Product details merge ho jayengi
+      .sort({ createdAt: -1 }); // Sabse nayi inquiry sabse upar
+
+    res.status(200).json({ success: true, inquiries });
+  } catch (error) {
+    console.error("Get Inquiries Error:", error);
+    res.status(500).json({ error: "Failed to fetch inquiries." });
+  }
+};
+
+// 3. (Optional) Update Inquiry Status (Unread -> Read/Replied)
+exports.updateInquiryStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updatedInquiry = await Inquiry.findByIdAndUpdate(
+      req.params.id, 
+      { status }, 
+      { new: true }
+    );
+    res.status(200).json({ success: true, inquiry: updatedInquiry });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update status." });
+  }
+};
+
+// 🔥 NAYA CONTROLLER: Update Product Logic
+exports.updateProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { sellerId, productName, category, price, unit, moq, moqUnit, description, timelineData } = req.body;
+
+    // Check if product exists
+    const existingProduct = await Product.findById(productId);
+    if (!existingProduct) {
+      return res.status(404).json({ error: "Product not found." });
+    }
+
+    // 1. Timeline Parse and Format Data (with Mongoose validation failsafe)
+    let parsedTimeline = [];
+    if (timelineData) {
+      const rawTimeline = JSON.parse(timelineData);
+      
+      // Filter out empty steps and keep existing images safely
+      parsedTimeline = rawTimeline
+        .filter((step) => step.title?.trim() !== "" || step.date?.trim() !== "" || step.description?.trim() !== "")
+        .map((step) => ({
+          date: step.date || "N/A",               // Mongoose strict mode failsafe
+          title: step.title || "N/A",
+          description: step.description || "N/A",
+          timelineImage: step.existingImage || "" // Purani image wapas set kardo
+        }));
+    }
+
+    // 2. Handle Image Uploads (Main Image + Timeline Images)
+    let updatedMainImage = existingProduct.productImage; // Default to old image
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        
+        // Agar nayi main product image aayi hai
+        if (file.fieldname === "productImage") {
+          updatedMainImage = await uploadToCloudinary(file);
+        } 
+        
+        // Agar nayi timeline image aayi hai
+        else if (file.fieldname.startsWith("timelineImage_")) {
+          const index = parseInt(file.fieldname.split("_")[1]);
+          const newTimelinePicUrl = await uploadToCloudinary(file);
+          
+          if (parsedTimeline[index]) {
+            parsedTimeline[index].timelineImage = newTimelinePicUrl; // Nayi image set karo
+          }
+        }
+      }
+    }
+
+    // 3. Update Database
+    existingProduct.productName = productName;
+    existingProduct.category = category;
+    existingProduct.price = price;
+    existingProduct.unit = unit;
+    existingProduct.moq = moq;
+    existingProduct.moqUnit = moqUnit;
+    existingProduct.description = description;
+    existingProduct.productImage = updatedMainImage;
+    existingProduct.productTimeline = parsedTimeline; // 🔥 Updated Timeline Save
+
+    await existingProduct.save();
+
+    res.status(200).json({ message: "Product updated successfully!", product: existingProduct });
+  } catch (error) {
+    console.error("Update Product Error:", error);
+    res.status(500).json({ error: "Failed to update product." });
+  }
 };

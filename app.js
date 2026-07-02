@@ -19,6 +19,7 @@ app.use(
     origin: [
       "http://localhost:5173", // Tera local Vite/React server
       "https://niryat-aarambh.vercel.app", // Tera Vercel production URL
+      "https://www.transparentb2b.com/"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // OPTIONS add kiya hai
     credentials: true, // 🔥 Ye bilkul sahi hai cookies ke liye

@@ -13,14 +13,13 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-
 app.use(
   cors({
     origin: [
       "http://localhost:5173", // Tera local Vite/React server
       "https://niryat-aarambh.vercel.app", // Tera Vercel production URL
+      "https://transparentb2b.com",
       "https://www.transparentb2b.com",
-       "https://www.transparentb2b.com"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // OPTIONS add kiya hai
     credentials: true, // 🔥 Ye bilkul sahi hai cookies ke liye

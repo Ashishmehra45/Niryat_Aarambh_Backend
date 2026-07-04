@@ -3,6 +3,7 @@ const cors = require("cors");
 
 const sellerRoutes = require("./routes/seller/sellerRoutes");
 const buyerRoutes = require("./routes/buyer/buyerRoutes");
+const adminRoutes = require("./routes/Admin/Admin.route");  // this is your admin  route 
 // const AdminRoutes = require("./routes/admin/admin.route");
 const cookieParser = require("cookie-parser");
 
@@ -27,6 +28,7 @@ app.use(
 
 app.use("/api/sellers", sellerRoutes);
 app.use("/api/buyers", buyerRoutes);
+app.use("/api/admin", adminRoutes);  // this is your admin route
 
 // 🔹 404 handler
 app.use((req, res) => {

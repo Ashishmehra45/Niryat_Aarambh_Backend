@@ -8,5 +8,7 @@ const adminAuthMiddleware = require("../../middlewares/Admin/Admin.middelware");
 router.post("/register", adminController.adminregister);
 router.post("/login", adminController.adminlogin);
 router.get("/sellers", adminAuthMiddleware.adminAuthMiddleware, adminController.getAllSeller); //get seller data from db via admin
+router.get("/sellers/:sellerId/products", adminAuthMiddleware.adminAuthMiddleware, adminController.getItemOfSeller); //get seller data from db via admin
+router.post("/logout", adminAuthMiddleware.adminAuthMiddleware, adminController.adminlogout);
 
 module.exports = router;

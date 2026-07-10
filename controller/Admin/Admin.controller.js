@@ -2,6 +2,7 @@ const adminModel = require('../../models/Admin.model')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const seller = require('../../models/sellerModel.js')
+const Product = require('../../models/Product.js')
 
 
 // admin register function
@@ -94,12 +95,45 @@ async function getAllSeller(req, res){
 
 
 }
+async function getItemOfSeller(req, res) {
+    try {
 
+        const { sellerId } = req.params;
+
+        // Optional: check seller exists
+        const sellerData = await seller.findById(sellerId);
+
+        if (!sellerData) {
+            return res.status(404).json({
+                success: false,
+                message: "Seller not found"
+            });
+        }
+
+        const products = await Product.find({
+            sellerId: sellerId
+        });
+
+        return res.status(200).json({
+            success: true,
+            products
+        });
+
+    } catch (err) {
+
+        return res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+}
 
 
 module.exports = {
     adminregister,
     adminlogin,
     adminlogout,
-    getAllSeller
+    getAllSeller,
+    getItemOfSeller
 };

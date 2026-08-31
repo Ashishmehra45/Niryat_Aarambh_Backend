@@ -3,7 +3,7 @@ const cors = require("cors");
 
 const sellerRoutes = require("./routes/seller/sellerRoutes");
 const buyerRoutes = require("./routes/buyer/buyerRoutes");
-const adminRoutes = require("./routes/admin/Admin.route");  // this is your admin  route 
+const adminRoutes = require("./routes/admin/Adminroute");  // this is your admin  route 
 // const AdminRoutes = require("./routes/admin/admin.route");
 const cookieParser = require("cookie-parser");
 

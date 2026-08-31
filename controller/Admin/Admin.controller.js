@@ -60,6 +60,7 @@ async function adminregister(req, res) {
     }
 }
 
+
 // admin login function
 async function adminlogin(req, res) {
     const { email, password } = req.body;
@@ -71,16 +72,20 @@ async function adminlogin(req, res) {
     if (!isMatch) {
         return res.status(400).json({ message: 'Invalid email or password' });
     }
+    
+    // Token generate karo
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token);
+    
+    // 🔥 FIX: Cookie hatayi, token JSON response mein bheja
     res.status(200).json({
-         message: 'Admin logged in successfully',
-            admin: {
-                id: admin._id,
-                username: admin.username,
-                email: admin.email,
-            }
-        });
+        message: 'Admin logged in successfully',
+        token: token, // 🔥 Token yahan bhej
+        admin: {
+            id: admin._id,
+            username: admin.username,
+            email: admin.email,
+        }
+    });
 }
 
 // admin logut function

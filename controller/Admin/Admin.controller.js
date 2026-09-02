@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const seller = require('../../models/sellerModel.js')
 const Product = require('../../models/Product.js')
 const Inquiry = require('../../models/Inquiry.js')
+const Requirement = require('../../models/Requirement.js')
 
 
 // admin register function
@@ -185,6 +186,23 @@ async function getAllInquiries(req, res) {
         return res.status(500).json({ success: false, message: err.message });
     }
 }
+async function getAllRequirements(req, res) {
+    try {
+        console.log("🔥 Admin fetching global requirements..."); 
+        
+        // Populate hata diya kyunki Requirement me sellerId nahi hoti hai
+        const requirements = await Requirement.find()
+            .sort({ createdAt: -1 })
+            .lean();
+
+        console.log(`✅ Success! Sent ${requirements.length} requirements to Admin.`);
+        return res.status(200).json({ success: true, requirements });
+
+    } catch (err) {
+        console.error("❌ Backend Error in getAllRequirements:", err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+}
 
 
 module.exports = {
@@ -193,5 +211,6 @@ module.exports = {
     adminlogout,
     getAllSeller,
     getItemOfSeller,
-    getAllInquiries
+    getAllInquiries,
+    getAllRequirements  
 };

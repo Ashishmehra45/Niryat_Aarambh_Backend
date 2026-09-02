@@ -11,5 +11,6 @@ router.get("/sellers", adminAuthMiddleware.adminAuthMiddleware, adminController.
 router.get("/sellers/:sellerId/products", adminAuthMiddleware.adminAuthMiddleware, adminController.getItemOfSeller); //get seller data from db via admin
 router.post("/logout", adminAuthMiddleware.adminAuthMiddleware, adminController.adminlogout);
 router.get("/inquiries", adminAuthMiddleware.adminAuthMiddleware, adminController.getAllInquiries); //get all inquiries for admin
+router.get("/requirements", adminAuthMiddleware.adminAuthMiddleware, adminController.getAllRequirements); //get all requirements for admin
 
 module.exports = router;

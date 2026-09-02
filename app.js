@@ -17,13 +17,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Tera local Vite/React server
-      "https://niryat-aarambh.vercel.app", // Tera Vercel production URL
+      "http://localhost:5173", 
+      "https://niryat-aarambh.vercel.app", 
       "https://transparentb2b.com",
       "https://www.transparentb2b.com",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // OPTIONS add kiya hai
-    credentials: true, // 🔥 Ye bilkul sahi hai cookies ke liye
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+    allowedHeaders: ["Content-Type", "Authorization"], // 🔥 YE LINE MISSING THI! Iske bina token drop ho jata hai
+    credentials: true,
   }),
 );
 

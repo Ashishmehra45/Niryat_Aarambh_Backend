@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const seller = require('../../models/sellerModel.js')
 const Product = require('../../models/Product.js')
+const Inquiry = require('../../models/Inquiry.js')
 
 
 // admin register function
@@ -94,11 +95,34 @@ async function adminlogout(req, res) {
     res.status(200).json({ message: 'Admin logged out successfully' });
 }
 
+// Admin.controller.js
 async function getAllSeller(req, res){
-    const sellers = await seller.find();
-    res.status(200).json({ success: true, sellers });
-
-
+    try {
+        const sellers = await seller.aggregate([
+            {
+                $lookup: {
+                    from: "products", // Tere Product collection ka naam (usually lowercase plural hota hai)
+                    localField: "_id",
+                    foreignField: "sellerId",
+                    as: "sellerProducts"
+                }
+            },
+            {
+                $addFields: {
+                    productCount: { $size: "$sellerProducts" } // Array ka size count kar lega
+                }
+            },
+            {
+                $project: {
+                    password: 0, // Password frontend pe nahi bhejna chahiye
+                    sellerProducts: 0 // Poora array hatakar sirf count bhejenge
+                }
+            }
+        ]);
+        res.status(200).json({ success: true, sellers });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 }
 async function getItemOfSeller(req, res) {
     try {
@@ -133,6 +157,34 @@ async function getItemOfSeller(req, res) {
 
     }
 }
+async function getAllInquiries(req, res) {
+    try {
+        console.log("🔥 Admin fetching global inquiries..."); 
+        
+        // 1. Populate lagaya taaki ID ki jagah actual naam aa jaye
+        const inquiries = await Inquiry.find()
+            .populate("sellerId", "businessName") // 🔥 Seller ka data map karega
+            .populate("productId", "productName") // Agar product bhi ID se juda hai, toh wo bhi nikal lega
+            .sort({ createdAt: -1 })
+            .lean(); // Data processing fast karne ke liye
+
+        // 2. Frontend ko 'sellerName' chahiye, toh hum format kar dete hain
+        const formattedInquiries = inquiries.map(inq => ({
+            ...inq,
+            // Agar populate hua hai toh businessName set karo, warna fallback
+            sellerName: inq.sellerId?.businessName || inq.sellerName || "Unknown Seller",
+            // Product name fallback
+            productName: inq.productId?.productName || inq.productName || "Unknown Product"
+        }));
+        
+        console.log(`✅ Success! Sent ${formattedInquiries.length} inquiries to Admin.`);
+        return res.status(200).json({ success: true, inquiries: formattedInquiries });
+
+    } catch (err) {
+        console.error("❌ Backend Error in getAllInquiries:", err); 
+        return res.status(500).json({ success: false, message: err.message });
+    }
+}
 
 
 module.exports = {
@@ -140,5 +192,6 @@ module.exports = {
     adminlogin,
     adminlogout,
     getAllSeller,
-    getItemOfSeller
+    getItemOfSeller,
+    getAllInquiries
 };
